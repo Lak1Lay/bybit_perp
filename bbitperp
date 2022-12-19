@@ -1,0 +1,66 @@
+import time
+import requests
+import json
+
+# Replace YOUR_BOT_TOKEN with your actual bot token
+BOT_TOKEN = 'YOUR_BOT_TOKEN'
+
+# Replace CHAT_ID with the chat ID of the recipient
+CHAT_ID = 'CHAT_ID'
+
+# Bybit API endpoint for getting the MACD indicator
+BYBIT_API_URL = 'https://api.bybit.com/v2/public/klines'
+
+# Telegram API endpoint for sending messages
+TELEGRAM_API_URL = 'https://api.telegram.org/bot{}/sendMessage'.format(BOT_TOKEN)
+
+def send_telegram_message(message):
+  data = {
+    'chat_id': CHAT_ID,
+    'text': message
+  }
+  response = requests.post(TELEGRAM_API_URL, json=data)
+  if response.status_code != 200:
+    print('Error: Unable to send message')
+
+def get_macd_data():
+  # Make a request to the Bybit API to get the MACD data
+  params = {
+    'symbol': 'BTCUSD',
+    'interval': '15',
+    'limit': '1'
+  }
+  response = requests.get(BYBIT_API_URL, params=params)
+  if response.status_code != 200:
+    print('Error: Unable to fetch MACD data')
+    return None
+  data = response.json()
+  # Extract the MACD and signal line values from the API response
+  macd_values = data[0][3:5]
+  return macd_values
+
+def main():
+  # Initialize the previous MACD and signal line values
+  prev_macd_value = 0
+  prev_signal_value = 0
+  while True:
+    # Get the current MACD and signal line values
+    macd_values = get_macd_data()
+    if macd_values is None:
+      continue
+    macd_value = macd_values[0]
+    signal_value = macd_values[1]
+    # Check if the MACD value has crossed the signal line
+    if (macd_value > signal_value and prev_macd_value <= prev_signal_value) or (macd_value < signal_value and prev_macd_value >= prev_signal_value):
+      # Send a message on Telegram with the direction of the crossover
+      direction = 'up' if macd_value > signal_value else 'down'
+      message = 'MACD has crossed the signal line in the {} direction'.format(direction)
+      send_telegram_message(message)
+    # Update the previous MACD and signal line values
+    prev_macd_value = macd_value
+    prev_signal_value = signal_value
+    # Sleep for 1 minute before checking again
+    time.sleep(60)
+
+if __name__ == '__main__':
+  main()
