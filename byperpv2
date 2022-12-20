@@ -16,6 +16,9 @@ timeframe = 15
 url = 'https://api.bybit.com/v2/public/kline/list'
 
 async def main():
+    # Set the previous price to None initially
+    previous_price = None
+
     while True:
         # Send a request to the API to get the MACD values for the specified timeframe
         params = {
@@ -68,3 +71,5 @@ async def main():
         await asyncio.sleep(60)
 
 asyncio.run(main())
+
+
