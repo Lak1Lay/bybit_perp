@@ -1,0 +1,63 @@
+import requests
+import time
+import telegram
+
+# Replace YOUR_API_TOKEN with your Telegram bot's API token
+bot = telegram.Bot(token='YOUR_API_TOKEN')
+
+# Set the chat_id where you want to send the message
+chat_id = 12345678
+
+# Set the timeframe (in minutes) for checking the MACD line
+timeframe = 15
+
+# Set the URL for the BTC/USDT perpetual on Bybit
+url = 'https://api.bybit.com/v2/public/kline/list'
+
+while True:
+    # Send a request to the API to get the MACD values for the specified timeframe
+    params = {
+        'symbol': 'BTCUSDT',
+        'interval': f'{timeframe}m',
+        'limit': 1
+    }
+    response = requests.get(url, params=params).json()
+    data = response['result'][0]
+
+    # Extract the MACD and signal line values from the response
+    macd = data['macd']
+    signal = data['signal']
+
+    # Check if the MACD line has crossed the signal line
+    if macd > signal:
+        # MACD line crossed signal line upwards
+        direction = 'upwards'
+    elif macd < signal:
+        # MACD line crossed signal line downwards
+        direction = 'downwards'
+    else:
+        # MACD line and signal line are equal, no crossing
+        direction = None
+
+    # Check if the price has risen or dropped since the last message
+    last_price = data['close']
+    if last_price > previous_price:
+        # Price has risen
+        price_change = 'risen'
+    elif last_price < previous_price:
+        # Price has dropped
+        price_change = 'dropped'
+    else:
+        # Price has not changed
+        price_change = 'not changed'
+
+    # Save the current price as the previous price for the next iteration
+    previous_price = last_price
+
+    # If the MACD line crossed the signal line, send a message with the direction and price change
+    if direction is not None:
+        message = f'MACD line crossed signal line {direction}. Price has {price_change}.'
+        bot.send_message(chat_id=chat_id, text=message)
+
+    # Wait one minute before checking again
+    time.sleep(60)
