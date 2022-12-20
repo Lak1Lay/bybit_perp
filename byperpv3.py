@@ -1,7 +1,7 @@
 import telegram
 import asyncio
 import talib
-from bybit import Client
+import requests
 
 # Replace YOUR_API_TOKEN with your Telegram bot's API token
 bot = telegram.Bot(token='YOUR_API_TOKEN')
@@ -12,19 +12,18 @@ chat_id = 12345678
 # Set the timeframe (in minutes) for checking the MACD line
 timeframe = 15
 
-# Create a Client object for accessing the Bybit API
-client = Client()
-
 async def main():
     # Set the previous price to None initially
     previous_price = None
 
     while True:
-        # Get the latest MACD and signal line values for the specified timeframe
-        candles = client.candles.get(symbol='BTCUSD', interval=f'{timeframe}m', limit=1)
-        data = candles['result'][0]
-        macd = data['macd']
-        signal = data['signal']
+        # Send a GET request to the Bybit API to retrieve the latest MACD and signal line values
+        url = 'https://api-testnet.bybit.com/v2/public/kline/list'
+        params = {'symbol': 'BTCUSD', 'interval': f'{timeframe}m', 'limit': '1'}
+        response = requests.get(url, params=params)
+        data = response.json()
+        macd = data['result'][0]['macd']
+        signal = data['result'][0]['signal']
 
         # Use the crossover function from talib to check if the MACD line has crossed the signal line
         macd_crossed_signal = talib.crossover(macd, signal)
@@ -41,7 +40,7 @@ async def main():
             direction = None
 
         # Check if the price has risen or dropped since the last message
-        last_price = data['close']
+        last_price = data['result'][0]['close']
         if last_price > previous_price:
             # Price has risen
             price_change = 'risen'
@@ -65,4 +64,3 @@ async def main():
 
 asyncio.run(main())
 
-print("END")
